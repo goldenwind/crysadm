@@ -62,9 +62,13 @@ def red_log(clas, type, id, gets):
     body = dict(time=log_as_time, clas=clas, type=type, id=id, gets=gets)
 
     log_as_body = record_info.get('diary')
-    log_as_body.append(body)
+    log_trimed = []
+    for item in log_as_body:
+       if (datetime.now() - datetime.strptime(item.get('time'), '%Y-%m-%d %H:%M:%S')).days < 31:
+           log_trimed.append(item)
+    log_trimed.append(body)
 
-    record_info['diary'] = log_as_body
+    record_info['diary'] = log_trimed
 
     r_session.set(record_key, json.dumps(record_info))
 
@@ -396,6 +400,39 @@ def reset_device():
 
     ubus_cd(session_id, account_id, 'reset', ["mnt", "reset", {}], '&device_id=%s' % device_id)
 
+    return redirect(url_for('excavators'))
+
+
+# UPNP开启按钮
+@app.route('/enable_upnp', methods=['POST'])
+@requires_auth
+def enable_upnp():
+    device_id = request.values.get('device_id')
+    session_id = request.values.get('session_id')
+    account_id = request.values.get('account_id')
+
+    ubus_cd(session_id, account_id, 'set_upnp', ["dcdn","set_upnp",{"enabled":True}], '&device_id=%s' % device_id)
+
+    session['device_id'] = device_id
+    session['session_id'] = session_id
+    session['account_id'] = account_id
+    session['info_message']='设备已开启UPNP'
+    return redirect(url_for('excavators'))
+
+# UPNP关闭按钮
+@app.route('/disable_upnp', methods=['POST'])
+@requires_auth
+def disable_upnp():
+    device_id = request.values.get('device_id')
+    session_id = request.values.get('session_id')
+    account_id = request.values.get('account_id')
+
+    ubus_cd(session_id, account_id, 'set_upnp', ["dcdn","set_upnp",{"enabled":False}], '&device_id=%s' % device_id)
+
+    session['device_id'] = device_id
+    session['session_id'] = session_id
+    session['account_id'] = account_id
+    session['info_message']='设备已关闭UPNP'
     return redirect(url_for('excavators'))
 
 # 定位设备按钮
